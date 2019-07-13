@@ -19,7 +19,7 @@ namespace TestApplication {
             var bytes = KNetServer.SendBufferedValues();
 
 
-            var gracz = new KNetPlayer(null, "").KNetGetObject(bytes[0]);
+ //           var gracz = new KNetPlayer(null, "").KNetGetObject(bytes[0]);
         }
     }
 }

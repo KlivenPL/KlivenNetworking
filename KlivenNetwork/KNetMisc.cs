@@ -6,14 +6,14 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace KlivenNetworking {
-    public interface IKNetSerializable<T> {
+    public interface IKNetSerializable {
         byte[] KNetSerialize();
-        T KNetDeserialize(byte[] data);
+        T KNetDeserialize<T>(byte[] data);
     }
 
-    public interface IKNetBufferable<T> {
+    public interface IKNetBufferable {
         byte[] KNetGetBuffer();
-        T KNetGetObject(byte[] data);
+        T KNetGetObject<T>(byte[] data);
     }
 
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]

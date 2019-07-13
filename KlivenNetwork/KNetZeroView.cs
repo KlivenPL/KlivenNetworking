@@ -9,8 +9,16 @@ namespace KlivenNetworking {
         [KNetBufferedValue]
         public List<KNetPlayer> Players = new List<KNetPlayer>();
 
+       // [KNetBufferedValue]
+       // public List<IKNetBufferable<int>> xddddddd;
         [KNetBufferedValue]
-        public int dupaxd = 2137;
+        public int[] inty;
+
+        [KNetBufferedValue]
+        public float dupaxd = 2137f;
+
+        [KNetBufferedValue]
+        public KNetServer powinnoBycFalse;
     }
 
     public class Chujnia : KNetView {

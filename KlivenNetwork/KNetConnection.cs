@@ -8,14 +8,14 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 namespace KlivenNetworking {
-    public class KNetConnection : IKNetSerializable<KNetConnection>, ISerializable { 
+    public class KNetConnection : IKNetSerializable, ISerializable { 
         public IPEndPoint Ip { get; private set; }
         public int Id { get; private set; }
 
-        public KNetConnection KNetDeserialize(byte[] data) {
+        public T KNetDeserialize<T>(byte[] data) {
             BinaryFormatter bf = new BinaryFormatter();
             MemoryStream ms = new MemoryStream(data);
-            return (KNetConnection)bf.Deserialize(ms);
+            return (T)bf.Deserialize(ms);
         }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context) {
