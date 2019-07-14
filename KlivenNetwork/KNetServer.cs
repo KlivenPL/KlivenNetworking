@@ -14,81 +14,60 @@ namespace KlivenNetworking {
         public abstract void OnServerStopped();
         public abstract void OnClientConnected(KNetConnection connection);
 
-        public static List<byte[]> SendBufferedValues() {
-            List<byte[]> bytes = new List<byte[]>();
-            /*for (int i = 0; i < KNetView.InharitedTypes.Length; i++) {
-                FieldInfo[] fieldInfos = KNetView.InharitedTypes[i].GetFields().
-                    Where(e => e.IsDefined(typeof(KNetBufferedValueAttribute), false)).
-                    OrderBy(e=>e.MetadataToken).ToArray();
-                for (int j = 0; j < fieldInfos.Length; j++) {
-                    var xd = fieldInfos[j].GetValue(kNetView);
-                }
-            }*/
-
-            /* for (int i = 0; i < KlivenNet.Views.Count; i++) {
-                 for (int j = 0; j < KlivenNet.Views[i].BufferedFields.Length; j++) {
-                     FieldInfo field = KlivenNet.Views[i].BufferedFields[j];
-                     var value = field.GetValue(KlivenNet.Views[i]);
-                     var t = field.FieldType;
-                     var trueType = t;
-                     bool isList = false;
-                     if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>)) {
-                         t = t.GetGenericArguments()[0];
-                         isList = true;
-                         //var interfaces = itemType.GetInterfaces()
-                     }
-                     var interfaces = t.GetInterfaces();
-                     MemoryStream ms = new MemoryStream();
-                     BinaryFormatter bf = new BinaryFormatter();
-                     bool acceptedType = false;
-                     for (int k = 0; k < interfaces.Length; k++) {
-                         if (interfaces[k].IsGenericType && interfaces[k].GetGenericTypeDefinition() == typeof(IKNetBufferable<>)) {
-                             acceptedType = true;
-                             if (!isList) {
-                                 Console.WriteLine("XDDDD");
-                                 var ciota = trueType.GetMethod("KNetGetBuffer");
-                                 var x2 = ciota.GetParameters();
-                                 bytes.Add((byte[]) ciota.Invoke(Activator.CreateInstance(typeof(KNetPlayer),new object[] {null, "i chuja" } ), null));
-                             }
-                             break;
-                         }
-                     }
-                     if (!acceptedType) {
-                         acceptedType = t.IsPrimitive || t == typeof(string);
-                     }
-                     if (acceptedType) {
-                         Console.WriteLine(value);
-                     }
-                     //if (t.inter t.IsPrimitive || t == typeof(Decimal) || t == typeof(String))
-                     //  Console.WriteLine(xd);
-                 }
-
-             }*/
-
+        public static List<KNetSerializedField> DEBUG_SEND_BUFFERED_VALUES() {
+            return SendBufferedValues();
+        }
+        internal static List<KNetSerializedField> SendBufferedValues() {
+            List<KNetSerializedField> serializedFields = new List<KNetSerializedField>();
             foreach (var view in KlivenNet.Views) {
                 foreach (var bufferedField in view.BufferedFields) {
-                    // bool isBufferable = false;
-                    byte bufferable = KNetUtils.IsBufferable(bufferedField.FieldType);
-                    Console.WriteLine(bufferedField.Name + " is bufferable: " + bufferable);
+                    var fieldType = bufferedField.FieldType;
+                    byte bufferable = KNetUtils.IsSerializable(fieldType);
+                   // Console.WriteLine(bufferedField.Name + " is bufferable: " + bufferable);
+                   if (bufferable == 0) {
+                        KNetLogger.LogError($"KNetServer: could not serialize field {bufferedField.Name} on KNetView {view.Id}: does {bufferedField.DeclaringType.Name} implement KNetSerializable interface?");
+                        continue;
+                    }
+                    var fieldValue = bufferedField.GetValue(view);
+                    if (fieldValue == null) {
+                       // Console.WriteLine($"{fieldType} is null, not buffering.");
+                        continue;
+                    }
                     if (bufferable == 1) {
                         MemoryStream ms = new MemoryStream();
                         BinaryFormatter bf = new BinaryFormatter();
-                        var value = bufferedField.GetValue(view);
-                        if (value != null) {
-                            bf.Serialize(ms, bufferedField.GetValue(view));
-                            bytes.Add(ms.GetBuffer());
+                        bf.Serialize(ms, fieldValue);
+                        serializedFields.Add(new KNetSerializedField(view.Id, bufferedField.Name, ms.GetBuffer()));
+                    } else if (bufferable == 2) {
+                        byte[] buffer = null;
+                        if (fieldType.IsArray || (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))) {
+                            List<byte[]> serialized = new List<byte[]>();
+                            foreach (var element in (IEnumerable<IKNetSerializable>)fieldValue) {
+                                if (element != null)
+                                    serialized.Add(element.KNetSerialize());
+                            }
+
+                            MemoryStream ms = new MemoryStream();
+                            BinaryFormatter bf = new BinaryFormatter();
+                            bf.Serialize(ms, serialized);
+                            buffer = ms.GetBuffer();
+                            if (buffer != null && buffer.Length > 0) {
+                                var sf = new KNetSerializedField(view.Id, bufferedField.Name, buffer);
+                                sf.count = serialized.Count;
+                                serializedFields.Add(sf);
+                            }
+                        } else {
+                            /*buffer = (byte[])typeof(IKNetSerializable).GetMethod("KNetSerialize")
+                                .Invoke(fieldValue, null); spedzilem nad tymi dwoma linijkami 17 godzin, a potem znalazlem latwijszy sposob :c*/
+                            buffer = ((IKNetSerializable)fieldValue).KNetSerialize();
+                            if (buffer != null && buffer.Length > 0)
+                                serializedFields.Add(new KNetSerializedField(view.Id, bufferedField.Name, buffer));
                         }
-                    }else if (bufferable == 2) {
-                        var value = typeof(IKNetBufferable).GetMethod("KNetGetBuffer").MakeGenericMethod(bufferedField.FieldType)
-                            .Invoke(Activator.CreateInstance(bufferedField.FieldType, null), new object[] { bufferedField.GetValue(view) });
-
-                        bytes.Add((byte[])value);
-
                     }
 
                 }
             }
-            return bytes;
+            return serializedFields;
         }
     }
 

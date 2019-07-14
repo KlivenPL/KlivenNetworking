@@ -9,14 +9,14 @@ namespace KlivenNetworking {
     public abstract class KNetView {
         public int Id { get; set; } = -1;
 
-        public static KNetView Find(int id) {
-            for (int i = 0; i < KlivenNet.Views.Count; i++) {
-                if (KlivenNet.Views[i].Id == id)
-                    return KlivenNet.Views[i];
-            }
-            KNetLogger.LogWarning($"No KNetView of id = {id} was found");
-            return null;
-        }
+        //public static KNetView Find(int id) {
+        //    for (int i = 0; i < KlivenNet.Views.Count; i++) {
+        //        if (KlivenNet.Views[i].Id == id)
+        //            return KlivenNet.Views[i];
+        //    }
+        //    KNetLogger.LogWarning($"No KNetView of id = {id} was found");
+        //    return null;
+        //}
 
         private static Type[] inharitedTypes = null;
         public static Type[] InharitedTypes {
@@ -32,9 +32,13 @@ namespace KlivenNetworking {
             get {
                 if (bufferedFields != null)
                     return bufferedFields;
-                return bufferedFields = GetType().GetFields().Where(e => e.IsDefined(typeof(KNetBufferedValueAttribute), false)).
+                return bufferedFields = GetType().GetFields().Where(e => e.IsDefined(typeof(KNetBufferedObjectAttribute), false)).
                     OrderBy(e => e.MetadataToken).ToArray();
             }
+        }
+
+        internal void Init(int id) {
+            Id = id;
         }
 
 

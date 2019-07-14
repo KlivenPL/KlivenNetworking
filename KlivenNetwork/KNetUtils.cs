@@ -15,41 +15,30 @@ namespace KlivenNetworking {
         }
 
         /// <summary>
-        /// Returns 0 when buffType is not bufferable, 1 if it is a Primitive or a string and 2 if it implememnts IKNetBufferable<> and is serializable
+        /// Returns 0 when buffType is not bufferable, 1 if it is a Primitive or a string and 2 if it implememnts IKNetSerializable
         /// </summary>
-        public static byte IsBufferable(Type buffType/*, bool IKNetBufferableFound = false*/) {
-            if (buffType.IsPrimitive || buffType == typeof(string))
+        public static byte IsSerializable(Type type/*, bool IKNetBufferableFound = false*/) {
+            if (type.IsPrimitive || type == typeof(string))
                 return /*IKNetBufferableFound ? (byte)2 :*/ (byte)1;
-            if (buffType.IsArray) {
-                return IsBufferable(buffType.GetElementType()/*, IKNetBufferableFound*/);
+            if (type.IsArray) {
+                return IsSerializable(type.GetElementType()/*, IKNetBufferableFound*/);
             }
-            if (buffType.IsGenericType) {
-                var genTypeDef = buffType.GetGenericTypeDefinition();
+            if (type.IsGenericType) {
+                var genTypeDef = type.GetGenericTypeDefinition();
                 if (genTypeDef == typeof(List<>)) {
                     //if (genTypeDef == typeof(IKNetBufferable<>))
                     //    IKNetBufferableFound = true;
-                    var finalTypes = buffType.GetGenericArguments();
+                    var finalTypes = type.GetGenericArguments();
                     if (finalTypes.Length > 1)
                         return 0;
-                    return IsBufferable(finalTypes[0]/*, IKNetBufferableFound*/);
+                    return IsSerializable(finalTypes[0]/*, IKNetBufferableFound*/);
                 }
             }
 
-            return (buffType.GetInterfaces()
+            return (type.GetInterfaces()
                 .Where(
-                e => e == typeof(IKNetBufferable)
+                e => e == typeof(IKNetSerializable)
                 ).Count() == 1) ? (byte)2 : (byte)0;
         }
     }
-
-   
-    //public static T Cast<T>(object o) {
-    //    return (T)o;
-    //}
-
-    //private static MethodInfo castMethodInfo {
-    //    get {
-    //        return this.GetType().GetMethod("Cast").MakeGenericMethod(t);
-    //        object castedObject = castMethod.Invoke(null, new object[] { obj });
-    //    }
 }

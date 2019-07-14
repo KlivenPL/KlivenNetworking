@@ -8,7 +8,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace KlivenNetworking {
     [Serializable]
-    public class KNetPlayer : IKNetSerializable, IKNetBufferable, ISerializable {
+    public class KNetPlayer : IKNetReferenceable, IKNetSerializable, ISerializable {
         public KNetConnection Connection { get; private set; }
         public string Name { get; private set; }
 
@@ -37,30 +37,30 @@ namespace KlivenNetworking {
             Name = (string)info.GetValue("name", typeof(string));
         }
 
-        public T KNetDeserialize<T>(byte[] data) {
+        public object KNetDeserializeReference(byte[] data) {
             MemoryStream ms = new MemoryStream(data);
             BinaryFormatter bf = new BinaryFormatter();
-            return (T)((object)Find((int)bf.Deserialize(ms)));
+            return Find((int)bf.Deserialize(ms));
         }
 
-        public byte[] KNetSerialize<T>(T obj) {
+        public byte[] KNetSerializeReference() {
             MemoryStream ms = new MemoryStream();
             BinaryFormatter bf = new BinaryFormatter();
             bf.Serialize(ms, Connection.Id);
             return ms.GetBuffer();
         }
 
-        public byte[] KNetGetBuffer<T>(T obj) {
+        public byte[] KNetSerialize() {
             MemoryStream ms = new MemoryStream();
             BinaryFormatter bf = new BinaryFormatter();
             bf.Serialize(ms, this);
             return ms.GetBuffer();
         }
 
-        public T KNetGetObject<T>(byte[] data) {
+        public object KNetDeserialize(byte[] data) {
             MemoryStream ms = new MemoryStream(data);
             BinaryFormatter bf = new BinaryFormatter();
-            return (T)bf.Deserialize(ms);
+            return bf.Deserialize(ms);
         }
 
     }

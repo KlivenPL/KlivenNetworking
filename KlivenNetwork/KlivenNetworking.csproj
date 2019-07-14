@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="KlivenNet.cs" />
+    <Compile Include="KNetClient.cs" />
     <Compile Include="KNetConnection.cs" />
     <Compile Include="KNetLogger.cs" />
     <Compile Include="KNetMisc.cs" />

@@ -8,12 +8,28 @@ namespace KlivenNetworking
 {
     public static class KlivenNet {
 
-        public static List<KNetView> Views { get; private set; } = new List<KNetView>();
+        internal static List<KNetView> Views { get; } = new List<KNetView>();
         private static KNetZeroView zeroView = new KNetZeroView();
         public static List<KNetPlayer> Players {
             get {
                 return zeroView.Players;
             }
+        }
+
+        public static KNetView FindView(int id) {
+            for (int i = 0; i < Views.Count; i++) {
+                if (Views[i].Id == id)
+                    return Views[i];
+            }
+            KNetLogger.LogWarning($"No KNetView of id {id} was found.");
+            return null;
+        }
+
+        public static int AddView(KNetView view) {
+            int id = Views.Count;
+            view.Init(id);
+            Views.Add(view);
+            return id;
         }
 
         //private static Dictionary<Type, IKNetBufferable> BufferableTypes = new Dictionary<Type, IKNetBufferable>();
@@ -30,6 +46,7 @@ namespace KlivenNetworking
         //}
 
         public static KNetZeroView DEBUG_ZERO_VIEW { get => zeroView; }
+        public static List<KNetView> DEBUG_VIEWS { get => Views; }
 
 
     }

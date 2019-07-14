@@ -6,20 +6,23 @@ using System.Threading.Tasks;
 
 namespace KlivenNetworking {
     public sealed class KNetZeroView : KNetView {
-        [KNetBufferedValue]
+        [KNetBufferedObject]
         public List<int> intyLista;
 
-        [KNetBufferedValue]
+        [KNetBufferedObject]
         public List<KNetPlayer> Players = new List<KNetPlayer>();
 
        
-        [KNetBufferedValue]
-        public int[] inty;
+        [KNetBufferedObject]
+        public int[] inty = new int[]{2, 1, 3, 7 };
 
-        [KNetBufferedValue]
+        [KNetBufferedObject]
+        public KNetPlayer[] graczeArray = new KNetPlayer[3];
+
+        [KNetBufferedObject]
         public float dupaxd = 2137f;
 
-        [KNetBufferedValue]
+        [KNetBufferedObject]
         public KNetServer powinnoBycFalse;
     }
 
@@ -27,7 +30,7 @@ namespace KlivenNetworking {
         // [KNetBufferedValue]
         // public string ooops = "i chuj";
 
-        [KNetBufferedValue]
+        [KNetBufferedObject]
         public KNetPlayer player = new KNetPlayer(null, "KURWAAAAAAA");
     }
 }
