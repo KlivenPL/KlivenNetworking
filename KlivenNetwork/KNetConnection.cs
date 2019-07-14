@@ -30,7 +30,7 @@ namespace KlivenNetworking {
 
         public KNetConnection() { }
 
-        public byte[] KNetSerialize() {
+        public byte[] KNetSerialize<T>(T obj) {
             BinaryFormatter bf = new BinaryFormatter();
             MemoryStream ms = new MemoryStream();
             bf.Serialize(ms, this);

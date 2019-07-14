@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace KlivenNetworking {
     public interface IKNetSerializable {
-        byte[] KNetSerialize();
+        byte[] KNetSerialize<T>(T obj);
         T KNetDeserialize<T>(byte[] data);
     }
 
     public interface IKNetBufferable {
-        byte[] KNetGetBuffer();
+        byte[] KNetGetBuffer<T>(T obj);
         T KNetGetObject<T>(byte[] data);
     }
 

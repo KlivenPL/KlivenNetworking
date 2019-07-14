@@ -79,8 +79,10 @@ namespace KlivenNetworking {
                             bytes.Add(ms.GetBuffer());
                         }
                     }else if (bufferable == 2) {
-                        var value = typeof(IKNetBufferable).GetMethod("KNetGetBuffer")
-                            .Invoke(bufferedField.GetValue(null), null);
+                        var value = typeof(IKNetBufferable).GetMethod("KNetGetBuffer").MakeGenericMethod(bufferedField.FieldType)
+                            .Invoke(Activator.CreateInstance(bufferedField.FieldType, null), new object[] { bufferedField.GetValue(view) });
+
+                        bytes.Add((byte[])value);
 
                     }
 

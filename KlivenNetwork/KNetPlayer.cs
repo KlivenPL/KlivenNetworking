@@ -16,6 +16,8 @@ namespace KlivenNetworking {
             Connection = connection;
             Name = name;
         }
+
+        public KNetPlayer() { }
         public static KNetPlayer Find(int connectionId) {
             for (int i = 0; i < KlivenNet.Players.Count; i++) {
                 if (KlivenNet.Players[i].Connection.Id == connectionId)
@@ -41,14 +43,14 @@ namespace KlivenNetworking {
             return (T)((object)Find((int)bf.Deserialize(ms)));
         }
 
-        public byte[] KNetSerialize() {
+        public byte[] KNetSerialize<T>(T obj) {
             MemoryStream ms = new MemoryStream();
             BinaryFormatter bf = new BinaryFormatter();
             bf.Serialize(ms, Connection.Id);
             return ms.GetBuffer();
         }
 
-        public byte[] KNetGetBuffer() {
+        public byte[] KNetGetBuffer<T>(T obj) {
             MemoryStream ms = new MemoryStream();
             BinaryFormatter bf = new BinaryFormatter();
             bf.Serialize(ms, this);

@@ -17,11 +17,11 @@ namespace KlivenNetworking {
         /// <summary>
         /// Returns 0 when buffType is not bufferable, 1 if it is a Primitive or a string and 2 if it implememnts IKNetBufferable<> and is serializable
         /// </summary>
-        public static byte IsBufferable(Type buffType, bool IKNetBufferableFound = false) {
+        public static byte IsBufferable(Type buffType/*, bool IKNetBufferableFound = false*/) {
             if (buffType.IsPrimitive || buffType == typeof(string))
-                return IKNetBufferableFound ? (byte)2 : (byte)1;
+                return /*IKNetBufferableFound ? (byte)2 :*/ (byte)1;
             if (buffType.IsArray) {
-                return IsBufferable(buffType.GetElementType(), IKNetBufferableFound);
+                return IsBufferable(buffType.GetElementType()/*, IKNetBufferableFound*/);
             }
             if (buffType.IsGenericType) {
                 var genTypeDef = buffType.GetGenericTypeDefinition();
@@ -31,7 +31,7 @@ namespace KlivenNetworking {
                     var finalTypes = buffType.GetGenericArguments();
                     if (finalTypes.Length > 1)
                         return 0;
-                    return IsBufferable(finalTypes[0], IKNetBufferableFound);
+                    return IsBufferable(finalTypes[0]/*, IKNetBufferableFound*/);
                 }
             }
 

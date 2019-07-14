@@ -7,10 +7,12 @@ using System.Threading.Tasks;
 namespace KlivenNetworking {
     public sealed class KNetZeroView : KNetView {
         [KNetBufferedValue]
+        public List<int> intyLista;
+
+        [KNetBufferedValue]
         public List<KNetPlayer> Players = new List<KNetPlayer>();
 
-       // [KNetBufferedValue]
-       // public List<IKNetBufferable<int>> xddddddd;
+       
         [KNetBufferedValue]
         public int[] inty;
 

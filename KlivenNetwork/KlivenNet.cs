@@ -16,15 +16,18 @@ namespace KlivenNetworking
             }
         }
 
-        private static Dictionary<Type, IKNetBufferable> BufferableTypes = new Dictionary<Type, IKNetBufferable>();
+        //private static Dictionary<Type, IKNetBufferable> BufferableTypes = new Dictionary<Type, IKNetBufferable>();
 
-        public static void RegisterBufferable<T>(IKNetBufferable bufferable) {
-            BufferableTypes.Add(typeof(T), bufferable);
-        }
+        //public static void RegisterBufferable<T>() where T :  new() {
+        //    if (BufferableTypes.ContainsKey(typeof(T)) == false)
+        //        BufferableTypes.Add(typeof(T), (IKNetBufferable)(object)new T());
+        //}
 
-        public static IKNetBufferable GetBufferable(Type type) {
-            return BufferableTypes[type];
-        }
+        //public static T GetBufferable<T>() where T :  new() {
+        //    if (BufferableTypes.ContainsKey(typeof(T)) == false)
+        //        BufferableTypes.Add(typeof(T), (IKNetBufferable)(object)new T());
+        //    return (T)BufferableTypes[typeof(T)];
+        //}
 
         public static KNetZeroView DEBUG_ZERO_VIEW { get => zeroView; }
 
