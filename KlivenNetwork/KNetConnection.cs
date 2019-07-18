@@ -11,7 +11,7 @@ namespace KlivenNetworking {
     [Serializable]
     public class KNetConnection : IKNetReferenceable, ISerializable {
         public IPEndPoint Ip { get; private set; } = new IPEndPoint(IPAddress.Parse("0.0.0.0"), 0);
-        public int Id { get; private set; }
+        public short Id { get; private set; } = -1;
 
         public object KNetDeserializeReference(byte[] data) {
             BinaryFormatter bf = new BinaryFormatter();
@@ -22,14 +22,16 @@ namespace KlivenNetworking {
         public void GetObjectData(SerializationInfo info, StreamingContext context) {
             info.AddValue("ip", Ip.Address.ToString(), typeof(string));
             info.AddValue("port", Ip.Port, typeof(Int32));
-            info.AddValue("id", Id, typeof(Int32));
+            info.AddValue("id", Id, typeof(Int16));
         }
         public KNetConnection(SerializationInfo info, StreamingContext context) {
             Ip = new IPEndPoint(IPAddress.Parse(info.GetString("ip")), info.GetInt32("port"));
-            Id = info.GetInt32("id");
+            Id = info.GetInt16("id");
         }
 
-        public KNetConnection() { }
+        public KNetConnection(short connId) {
+            Id = connId;
+        }
 
         public byte[] KNetSerializeReference() {
             BinaryFormatter bf = new BinaryFormatter();
@@ -37,5 +39,7 @@ namespace KlivenNetworking {
             bf.Serialize(ms, this);
             return ms.GetBuffer();
         }
+
+        public KNetConnection() { }
     }
 }

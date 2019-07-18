@@ -44,8 +44,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="Chat.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TelepathyClient.cs" />
+    <Compile Include="TelepathyServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -54,6 +56,10 @@
     <ProjectReference Include="..\KlivenNetwork\KlivenNetworking.csproj">
       <Project>{0f3947dd-6c9d-4998-91f1-397d4a76d741}</Project>
       <Name>KlivenNetworking</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Telepathy\Telepathy.csproj">
+      <Project>{af80abe9-7066-4084-9de8-ddbdb2c555af}</Project>
+      <Name>Telepathy</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

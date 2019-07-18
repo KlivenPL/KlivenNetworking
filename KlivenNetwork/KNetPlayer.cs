@@ -10,21 +10,15 @@ namespace KlivenNetworking {
     [Serializable]
     public class KNetPlayer : IKNetReferenceable, IKNetSerializable, ISerializable {
         public KNetConnection Connection { get; private set; }
-        public string Name { get; private set; }
+        public string Name { get; internal set; }
 
-        public KNetPlayer(KNetConnection connection, string name) {
+        public KNetPlayer(KNetConnection connection) {
             Connection = connection;
-            Name = name;
+//            Name = name;
         }
 
-        public KNetPlayer() { }
-        public static KNetPlayer Find(int connectionId) {
-            for (int i = 0; i < KlivenNet.Players.Count; i++) {
-                if (KlivenNet.Players[i].Connection.Id == connectionId)
-                    return KlivenNet.Players[i];
-            }
-            KNetLogger.LogWarning($"No KNetPlayer of connectionId = {connectionId} was found.");
-            return null;
+        public KNetPlayer() {
+            Connection = new KNetConnection();
         }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context) {
@@ -40,7 +34,7 @@ namespace KlivenNetworking {
         public object KNetDeserializeReference(byte[] data) {
             MemoryStream ms = new MemoryStream(data);
             BinaryFormatter bf = new BinaryFormatter();
-            return Find((int)bf.Deserialize(ms));
+            return KlivenNet.FindPlayer((int)bf.Deserialize(ms));
         }
 
         public byte[] KNetSerializeReference() {
@@ -62,6 +56,5 @@ namespace KlivenNetworking {
             BinaryFormatter bf = new BinaryFormatter();
             return bf.Deserialize(ms);
         }
-
     }
 }

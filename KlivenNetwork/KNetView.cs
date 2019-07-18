@@ -8,37 +8,43 @@ using System.Threading.Tasks;
 namespace KlivenNetworking {
     public abstract class KNetView {
         public int Id { get; set; } = -1;
+        [KNetBufferedObject]
+        private int ownerConnId;
+        public KNetConnection Owner { get => ownerConnId == 0 ? KlivenNet.ServerConnection : KlivenNet.FindPlayer(ownerConnId).Connection; }
 
-        //public static KNetView Find(int id) {
-        //    for (int i = 0; i < KlivenNet.Views.Count; i++) {
-        //        if (KlivenNet.Views[i].Id == id)
-        //            return KlivenNet.Views[i];
-        //    }
-        //    KNetLogger.LogWarning($"No KNetView of id = {id} was found");
-        //    return null;
-        //}
-
-        private static Type[] inharitedTypes = null;
-        public static Type[] InharitedTypes {
-            get {
-                if (inharitedTypes != null)
-                    return inharitedTypes;
-                return inharitedTypes = KNetUtils.GetEnumerableOfType<KNetView>().OrderBy(e=>e.MetadataToken).ToArray();
-            }
-        }
 
         private FieldInfo[] bufferedFields = null;
         public FieldInfo[] BufferedFields {
             get {
                 if (bufferedFields != null)
                     return bufferedFields;
-                return bufferedFields = GetType().GetFields().Where(e => e.IsDefined(typeof(KNetBufferedObjectAttribute), false)).
+                return bufferedFields = GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(e => e.IsDefined(typeof(KNetBufferedObjectAttribute), false)).
                     OrderBy(e => e.MetadataToken).ToArray();
             }
         }
 
+
+        //public abstract KNetView CreateEmpty();
+
+        protected virtual void OnServerUpdateSend(List<object> objectsToSend) {
+
+        }
+
+        protected virtual void OnServerUpdateRecieved(List<object> recievedObjects, KNetConnection sender) {
+
+        }
+
+        protected virtual void OnClientUpdateSend(List<object> objectsToSend) {
+
+        }
+
+        protected virtual void OnClientUpdateRecieved(List<object> recievedObjects, KNetConnection sender) {
+
+        }
+
         internal void Init(int id) {
             Id = id;
+            Console.WriteLine($"DEBUG: VIEW ID {id} HAS BEEN INITALIZED");
         }
 
 

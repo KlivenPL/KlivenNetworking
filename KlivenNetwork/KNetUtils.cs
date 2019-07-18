@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using LZ4;
 
 namespace KlivenNetworking {
     public static class KNetUtils {
@@ -39,6 +41,34 @@ namespace KlivenNetworking {
                 .Where(
                 e => e == typeof(IKNetSerializable)
                 ).Count() == 1) ? (byte)2 : (byte)0;
+        }
+        static short BytesToShort(params byte[] bytes) {
+            return (short)((bytes[1] << 8) + bytes[0]);
+        }
+
+        static byte[] BytesFromShort(short number) {
+            var byte2 = (byte)(number >> 8);
+            var byte1 = (byte)(number & 255);
+            return new byte[] { byte1, byte2 };
+        }
+        internal enum PacketType { welcome, bufferedObject, rpc,  }
+        internal enum PacketDataType {bytes, IKNetSerializable}
+        internal static byte[] ConstructPacket(PacketType packetType, IKNetSerializable obj, KNetConnection overrideSender = null){
+            var connIdBytes = BytesFromShort(overrideSender != null && KlivenNet.IsServer ? overrideSender.Id : KlivenNet.MyConnection.Id);
+            return LZ4Codec.Wrap(new byte[] { (byte)packetType, (byte)PacketDataType.IKNetSerializable, connIdBytes[0], connIdBytes[1] }.Concat(obj.KNetSerialize()).ToArray());
+        }
+        internal static byte[] ConstructPacket(PacketType packetType, byte[] bytes, KNetConnection overrideSender = null) {
+            var connIdBytes = BytesFromShort(overrideSender != null && KlivenNet.IsServer ? overrideSender.Id : KlivenNet.MyConnection.Id);
+            return LZ4Codec.Wrap(new byte[] { (byte)packetType, (byte)PacketDataType.bytes, connIdBytes[0], connIdBytes[1] }.Concat(bytes).ToArray());
+        }
+
+        internal static void DeconstructPacket(ref byte[] bytes, out PacketType packetType, out PacketDataType dataType, out short senderId) {
+            bytes = LZ4Codec.Unwrap(bytes);
+            MemoryStream ms = new MemoryStream(bytes);
+            packetType = (PacketType)bytes[0];
+            dataType = (PacketDataType)bytes[1];
+            senderId = BytesToShort(bytes[2], bytes[3]);
+            bytes = bytes.Skip(4).ToArray();
         }
     }
 }
