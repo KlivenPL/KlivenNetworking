@@ -43,13 +43,15 @@ namespace TestApplication {
             if (Console.KeyAvailable) {
                 var key = Console.ReadKey();
                 if (key.Key == ConsoleKey.Enter) {
-                    //Console.WriteLine($"players:{KlivenNet.Players.Count}");
-                    //foreach (var player in KlivenNet.Players) {
-                    //    Console.WriteLine(player.Name);
-                    //}
                     SendTextMessage(text);
                     text = "";
                 } else {
+                    if (key.Key == ConsoleKey.L) {
+                        Console.WriteLine($"players:{KlivenNet.Players.Count}");
+                        foreach (var player in KlivenNet.Players) {
+                            Console.WriteLine(player.Name);
+                        }
+                    }
                     text += key.KeyChar;
                 }
             }

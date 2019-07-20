@@ -70,16 +70,11 @@ namespace KlivenNetworking {
             bf.Serialize(ms, welcomePacket);
             var packet = KNetUtils.ConstructPacket(KNetUtils.PacketType.welcome, ms.GetBuffer());
             SendBytes(newClient, packet);
-            KlivenNet.Players.Add(new KNetPlayer(newClient));
-            KlivenNet.ZeroView.Players[0].Name = "Jakis pajac xd";
-            KlivenNet.Players.Add(new KNetPlayer(newClient));
-            KlivenNet.ZeroView.Players[1].Name = "Jakis pajac2 xd";
-            KlivenNet.Players.Add(new KNetPlayer(newClient));
-            KlivenNet.ZeroView.Players[2].Name = "Jakis pajac3 xd";
-            KlivenNet.Players.Add(new KNetPlayer(newClient));
-            KlivenNet.ZeroView.Players[3].Name = "Jakis pajac4 xd";
-            KlivenNet.Players.Add(new KNetPlayer(newClient));
-            KlivenNet.ZeroView.Players[4].Name = "Jakis pajac5 xd";
+            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 1" });
+            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 2" });
+            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 3" });
+            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 4" });
+            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 5" });
             SendBufferedValues(newClient);
         }
 
@@ -89,7 +84,9 @@ namespace KlivenNetworking {
         internal void SendBufferedValues(KNetConnection newClient) {
             //List<KNetSerializedField> serializedFields = new List<KNetSerializedField>();
             foreach (var view in KlivenNet.Views) {
+                int buffFieldId = -1;
                 foreach (var bufferedField in view.BufferedFields) {
+                    buffFieldId++;
                     KNetSerializedField serializedField = null;
                     var fieldType = bufferedField.FieldType;
                     byte bufferable = KNetUtils.IsSerializable(fieldType);
@@ -107,7 +104,7 @@ namespace KlivenNetworking {
                         MemoryStream ms = new MemoryStream();
                         BinaryFormatter bf = new BinaryFormatter();
                         bf.Serialize(ms, fieldValue);
-                        serializedField = new KNetSerializedField(view.Id, bufferedField.Name, ms.GetBuffer());
+                        serializedField = new KNetSerializedField(view.Id, buffFieldId, ms.GetBuffer());
                     } else if (bufferable == 2) {
                         byte[] buffer = null;
                         if (fieldType.IsArray || (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))) {
@@ -122,7 +119,7 @@ namespace KlivenNetworking {
                             bf.Serialize(ms, serialized);
                             buffer = ms.GetBuffer();
                             if (buffer != null && buffer.Length > 0) {
-                                var sf = new KNetSerializedField(view.Id, bufferedField.Name, buffer);
+                                var sf = new KNetSerializedField(view.Id, buffFieldId, buffer);
                                 sf.count = serialized.Count;
                                 serializedField = sf;
                             }
@@ -131,12 +128,13 @@ namespace KlivenNetworking {
                                 .Invoke(fieldValue, null); spedzilem nad tymi dwoma linijkami 17 godzin, a potem znalazlem latwijszy sposob :c*/
                             buffer = ((IKNetSerializable)fieldValue).KNetSerialize();
                             if (buffer != null && buffer.Length > 0)
-                                serializedField = new KNetSerializedField(view.Id, bufferedField.Name, buffer);
+                                serializedField = new KNetSerializedField(view.Id, buffFieldId, buffer);
                         }
                     }
 
                     var packet = KNetUtils.ConstructPacket(KNetUtils.PacketType.bufferedObject, serializedField);
                     SendBytes(newClient, packet);
+
                 }
             }
         }

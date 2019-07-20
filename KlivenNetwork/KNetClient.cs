@@ -14,12 +14,17 @@ namespace KlivenNetworking {
                 KNetLogger.LogError($"KNetClient: could not Recieve buffered object: KNetView of id {serializedField.viewId}: view does not exist.");
                 return;
             }
-            var fields = view.BufferedFields.Where(e => e.Name == serializedField.fieldName).ToArray();
+            /*var fields = view.BufferedFields.Where(e => e.Name == serializedField.fieldName).ToArray();
             if (fields.Length != 1) {
                 KNetLogger.LogError($"KNetClient: could not Recieve buffered object: KNetView of id {serializedField.viewId}: field name {serializedField.fieldName} is ambiguous.");
                 return;
+            }*/
+            //var field = fields[0];
+            var field = serializedField.fieldId < view.BufferedFields.Length ? view.BufferedFields[serializedField.fieldId] : null;
+            if (field == null) {
+                KNetLogger.LogError($"KNetClient: could not Recieve buffered object: KNetView of id {serializedField.viewId}: field id {serializedField.fieldId} is not defined.");
+                return;
             }
-            var field = fields[0];
             var fieldType = field.FieldType;
 
             byte bufferable = KNetUtils.IsSerializable(fieldType);

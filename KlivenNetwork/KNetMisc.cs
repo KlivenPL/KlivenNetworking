@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
@@ -30,15 +31,14 @@ namespace KlivenNetworking {
 
     //TODO CHANGE THAT TO INTERNAL!
     [Serializable]
-    public class KNetSerializedField : IKNetSerializable {
-        public int viewId, count = 1;
-        public string fieldName;
+    internal class KNetSerializedField : IKNetSerializable {
+        public int viewId, fieldId, count = 1;
         public byte[] data;
 
         //TODO CHANGE THAT TO INTERNAL!
-        public KNetSerializedField(int viewId, string fieldName, byte[] data) {
+        public KNetSerializedField(int viewId, int fieldId, byte[] data) {
             this.viewId = viewId;
-            this.fieldName = fieldName;
+            this.fieldId = fieldId;
             this.data = data;
         }
 
@@ -55,4 +55,18 @@ namespace KlivenNetworking {
             return ms.GetBuffer();
         }
     }
+
+    internal class KNetRpcInfo {
+        public MethodInfo methodInfo;
+        public string Name { get; private set; }
+        public Type[] ArgumentsTypes { get; private set; }
+
+        public KNetRpcInfo(MethodInfo methodInfo) {
+
+            this.methodInfo = methodInfo;
+            Name = methodInfo.Name;
+            ArgumentsTypes = methodInfo.GetParameters().Select(e => e.ParameterType).ToArray();
+        }
+    }
 }
+

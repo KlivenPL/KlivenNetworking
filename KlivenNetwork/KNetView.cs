@@ -14,13 +14,47 @@ namespace KlivenNetworking {
 
 
         private FieldInfo[] bufferedFields = null;
-        public FieldInfo[] BufferedFields {
+        internal FieldInfo[] BufferedFields {
             get {
                 if (bufferedFields != null)
                     return bufferedFields;
                 return bufferedFields = GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(e => e.IsDefined(typeof(KNetBufferedObjectAttribute), false)).
                     OrderBy(e => e.MetadataToken).ToArray();
             }
+        }
+
+        private MethodInfo[] rpcs = null;
+        internal MethodInfo[] Rpcs {
+            get {
+                if (rpcs != null)
+                    return rpcs;
+                var tmp = GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(e => e.IsDefined(typeof(KNetRPCAttribute), false)).
+                    OrderBy(e => e.MetadataToken).ToArray();
+                if (VerifyRpcMethods(tmp, out string methodName)) {
+                    return rpcs = tmp;
+                } else {
+                    KNetLogger.LogError($"KlivenNetworking: KNetView: {GetType().Name}: incorrect RPC found: {methodName}. RPCs on that View will not work. Check if RPC parameters types are supported.");
+                    return null;
+                }
+            }
+        }
+
+        private bool VerifyRpcMethods(MethodInfo[] rpcs, out string methodName) {
+            methodName = "(empty)";
+            foreach (var rpc in rpcs) {
+                var args = rpc.GetParameters();
+                methodName = rpc.Name;
+                foreach (var arg in args) {
+                    if (KNetUtils.IsSerializable(arg.GetType()) == 0) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public void RPC(string rpcMethodName, params object[] args) {
+
         }
 
 
