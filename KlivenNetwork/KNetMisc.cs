@@ -56,16 +56,50 @@ namespace KlivenNetworking {
         }
     }
 
-    internal class KNetRpcInfo {
+    internal class KNetRpcInfo : IKNetReferenceable {
         public MethodInfo methodInfo;
+        public short Id { get; private set; } = -1;
+        public KNetView kNetView { get; private set; }
         public string Name { get; private set; }
+        public ParameterInfo[] Arguments { get; private set; }
         public Type[] ArgumentsTypes { get; private set; }
 
-        public KNetRpcInfo(MethodInfo methodInfo) {
+        public static KNetRpcInfo CreateRpcInfo (short id, KNetView view, MethodInfo methodInfo) {
+            KNetRpcInfo info = new KNetRpcInfo();
+            var args = methodInfo.GetParameters().OrderBy(e=>e.Position);
+            if (args.Select (e => KNetUtils.IsSerializable(e.ParameterType) != 0).Any()) {
+                return null;
+            }
+            info.methodInfo = methodInfo;
+            info.Name = methodInfo.Name;
+            info.Arguments = args.ToArray();
+            info.ArgumentsTypes = args.Select(e => e.ParameterType).ToArray();
+            info.Id = id;
+            info.kNetView = view;
+            return info;
+        }
 
-            this.methodInfo = methodInfo;
-            Name = methodInfo.Name;
-            ArgumentsTypes = methodInfo.GetParameters().Select(e => e.ParameterType).ToArray();
+        public object KNetDeserializeReference(byte[] data) {
+            using (MemoryStream ms = new MemoryStream(data)) {
+                BinaryFormatter bf = new BinaryFormatter();
+                var refer = bf.Deserialize(ms);
+
+            }
+
+        }
+
+        public byte[] KNetSerializeReference() {
+            byte[] refer = null;
+            using (MemoryStream ms = new MemoryStream()) {
+                BinaryFormatter bf = new BinaryFormatter();
+                object[] data = new object[2];
+                data[0] = kNetView.KNetSerializeReference();
+                data[1] = Id;
+                //TODO: SERIALIZOWAC ARGUMENTY KURWA
+                bf.Serialize(ms, data);
+                refer = ms.GetBuffer();
+            }
+            return refer;
         }
     }
 }

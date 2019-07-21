@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace KlivenNetworking {
-    public abstract class KNetView {
+    public abstract class KNetView : IKNetReferenceable {
         public int Id { get; set; } = -1;
         [KNetBufferedObject]
         private int ownerConnId;
@@ -23,29 +25,34 @@ namespace KlivenNetworking {
             }
         }
 
-        private MethodInfo[] rpcs = null;
-        internal MethodInfo[] Rpcs {
+        private KNetRpcInfo[] rpcs = null;
+        internal KNetRpcInfo[] Rpcs {
             get {
                 if (rpcs != null)
                     return rpcs;
                 var tmp = GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(e => e.IsDefined(typeof(KNetRPCAttribute), false)).
                     OrderBy(e => e.MetadataToken).ToArray();
-                if (VerifyRpcMethods(tmp, out string methodName)) {
-                    return rpcs = tmp;
-                } else {
-                    KNetLogger.LogError($"KlivenNetworking: KNetView: {GetType().Name}: incorrect RPC found: {methodName}. RPCs on that View will not work. Check if RPC parameters types are supported.");
-                    return null;
-                }
+
+                if (VerifyRpcMethods(tmp, out rpcs))
+                    return rpcs;
+
+                return null;
             }
         }
-
-        private bool VerifyRpcMethods(MethodInfo[] rpcs, out string methodName) {
-            methodName = "(empty)";
-            foreach (var rpc in rpcs) {
-                var args = rpc.GetParameters();
-                methodName = rpc.Name;
-                foreach (var arg in args) {
-                    if (KNetUtils.IsSerializable(arg.GetType()) == 0) {
+        internal bool VerifyRpcMethods(MethodInfo[] tmp, out KNetRpcInfo[] tmpRpcs) {
+            tmpRpcs = new KNetRpcInfo[tmp.Length];
+            for (int i = 0; i < tmp.Length; i++) {
+                var rpcInfo = KNetRpcInfo.CreateRpcInfo(tmp[i]);
+                if (rpcInfo == null) {
+                    KNetLogger.LogError($"KlivenNetworking: KNetView: {GetType().Name}: incorrect RPC found: {tmp[i].Name}. RPCs on that View will not work. Check if RPC parameters types are supported.");
+                    return false;
+                }
+                tmpRpcs[i] = rpcInfo;
+            }
+            for (int i = 0; i < tmpRpcs.Length; i++) {
+                for (int j = 0; j < tmpRpcs.Length; j++) {
+                    if (tmpRpcs[i].Name == tmpRpcs[j].Name && i != j) {
+                        KNetLogger.LogError($"KlivenNetworking: KNetView: {GetType().Name}: duplicate RPC name found: {tmp[i].Name}. RPCs on that View will not work. Make sure that all RPCs names in View are unique.");
                         return false;
                     }
                 }
@@ -54,7 +61,35 @@ namespace KlivenNetworking {
         }
 
         public void RPC(string rpcMethodName, params object[] args) {
+            var rpcInfo = FindRpc(rpcMethodName);
+            if (rpcInfo == null) {
+                KNetLogger.LogError($"There is no RPC {rpcMethodName} on View of ID {Id} tagged with KNetRPC attribute.");
+            }
+            if (VerifyRpcArguments(rpcInfo, args) == false) {
+                return;
+            }
 
+        }
+
+        internal KNetRpcInfo FindRpc(string name) {
+            for (int i = 0; i < rpcs.Length; i++) {
+                if (rpcs[i].Name == name)
+                    return rpcs[i];
+            }
+            return null;
+        }
+
+        internal bool VerifyRpcArguments(KNetRpcInfo rpcInfo, params object[] args) {
+            if (args.Length != rpcInfo.ArgumentsTypes.Length) {
+                return false;
+            }
+            for (int i = 0; i < args.Length; i++) {
+                if (args[i].GetType() != rpcInfo.Arguments[i].ParameterType) {
+                    KNetLogger.LogError($"KlivenNetworking: KNetView: {GetType().Name}, ID: {Id}: RPC {rpcInfo.Name} incorrect parameters: expected {string.Join(", ", rpcInfo.ArgumentsTypes.Select(e=>e.Name).ToArray())}, recieved {string.Join(", ", args.Select(e=>e.GetType().Name).ToArray())}");
+                    return false;
+                }
+            }
+            return true;
         }
 
 
@@ -93,6 +128,20 @@ namespace KlivenNetworking {
         /// </summary>
         public virtual void OnSpawn() {
             KNetLogger.Log($"KNetView spawned with id {Id}");
+        }
+
+        public byte[] KNetSerializeReference() {
+            MemoryStream ms = new MemoryStream();
+            BinaryFormatter bf = new BinaryFormatter();
+            bf.Serialize(ms, Id);
+            return ms.GetBuffer();
+        }
+
+        public object KNetDeserializeReference(byte[] data) {
+            MemoryStream ms = new MemoryStream(data);
+            BinaryFormatter bf = new BinaryFormatter();
+            var id = (int)bf.Deserialize(ms);
+            return KlivenNet.FindView(id);
         }
     }
 }
