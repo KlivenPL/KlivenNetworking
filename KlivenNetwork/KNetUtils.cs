@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using LZ4;
@@ -16,32 +17,87 @@ namespace KlivenNetworking {
                 .Where(myType => myType.IsClass && !myType.IsAbstract && myType.IsSubclassOf(typeof(T)));
         }
 
-        /// <summary>
-        /// Returns 0 when buffType is not bufferable, 1 if it is a Primitive or a string and 2 if it implememnts IKNetSerializable
-        /// </summary>
-        public static byte IsSerializable(Type type/*, bool IKNetBufferableFound = false*/) {
+        internal static SerializableType IsSerializable(Type type) {
             if (type.IsPrimitive || type == typeof(string))
-                return /*IKNetBufferableFound ? (byte)2 :*/ (byte)1;
+                return SerializableType.primitive;
             if (type.IsArray) {
-                return IsSerializable(type.GetElementType()/*, IKNetBufferableFound*/);
+                var elemenType = type.GetElementType();
+                if (elemenType.IsGenericType)
+                    return 0;
+                if (elemenType.IsArray)
+                    return 0;
+                var serializable = IsSerializable(elemenType);
+                if (serializable == SerializableType.kNetSerializable)
+                    return SerializableType.array;
+                else
+                    return serializable;
             }
             if (type.IsGenericType) {
                 var genTypeDef = type.GetGenericTypeDefinition();
                 if (genTypeDef == typeof(List<>)) {
-                    //if (genTypeDef == typeof(IKNetBufferable<>))
-                    //    IKNetBufferableFound = true;
                     var finalTypes = type.GetGenericArguments();
                     if (finalTypes.Length > 1)
-                        return 0;
-                    return IsSerializable(finalTypes[0]/*, IKNetBufferableFound*/);
+                        return SerializableType.nonSerializable;
+                    if (finalTypes[0].IsGenericType)
+                        return SerializableType.nonSerializable;
+                    if (finalTypes[0].IsArray)
+                        return SerializableType.nonSerializable;
+
+                    var serializable = IsSerializable(finalTypes[0]);
+                    if (serializable == SerializableType.kNetSerializable)
+                        return SerializableType.list;
+                    else
+                        return serializable;
                 }
+                return 0;
             }
 
             return (type.GetInterfaces()
                 .Where(
                 e => e == typeof(IKNetSerializable)
-                ).Count() == 1) ? (byte)2 : (byte)0;
+                ).Count() == 1) ? SerializableType.kNetSerializable : SerializableType.nonSerializable;
         }
+
+        internal static byte[] Serialize(object fieldValue, SerializableType serializableType, out int count) {
+            count = 1;
+            var bufferable = (int)serializableType;
+            if (bufferable == 0) {
+                KNetLogger.LogWarning($"KNetUtils: could not serialize {fieldValue} : Non supported type");
+                return null;
+            }
+            if (fieldValue == null) {
+                // Console.WriteLine($"{fieldType} is null, not buffering.");
+                return null;
+            }
+            byte[] buffer = null;
+            if (bufferable == 1) {
+                MemoryStream ms = new MemoryStream();
+                BinaryFormatter bf = new BinaryFormatter();
+                bf.Serialize(ms, fieldValue);
+                return ms.GetBuffer();
+            } else if (bufferable == 2) {
+                buffer = ((IKNetSerializable)fieldValue).KNetSerialize();
+                if (buffer != null && buffer.Length > 0)
+                    return buffer;
+            } else if (bufferable == 3 || bufferable == 4) {
+                List<byte[]> serialized = new List<byte[]>();
+                foreach (var element in (IEnumerable<IKNetSerializable>)fieldValue) {
+                    if (element != null)
+                        serialized.Add(element.KNetSerialize());
+                }
+
+                MemoryStream ms = new MemoryStream();
+                BinaryFormatter bf = new BinaryFormatter();
+                bf.Serialize(ms, serialized);
+                buffer = ms.GetBuffer();
+                if (buffer != null && buffer.Length > 0) {
+                    count = serialized.Count;
+                    return buffer;
+                }
+            }
+            return null;
+        }
+
         static short BytesToShort(params byte[] bytes) {
             return (short)((bytes[1] << 8) + bytes[0]);
         }
@@ -51,9 +107,9 @@ namespace KlivenNetworking {
             var byte1 = (byte)(number & 255);
             return new byte[] { byte1, byte2 };
         }
-        internal enum PacketType { welcome, bufferedObject, rpc,  }
-        internal enum PacketDataType {bytes, IKNetSerializable}
-        internal static byte[] ConstructPacket(PacketType packetType, IKNetSerializable obj, KNetConnection overrideSender = null){
+        internal enum PacketType { welcome, bufferedObject, rpc, }
+        internal enum PacketDataType { bytes, IKNetSerializable }
+        internal static byte[] ConstructPacket(PacketType packetType, IKNetSerializable obj, KNetConnection overrideSender = null) {
             var connIdBytes = BytesFromShort(overrideSender != null && KlivenNet.IsServer ? overrideSender.Id : KlivenNet.MyConnection.Id);
             return LZ4Codec.Wrap(new byte[] { (byte)packetType, (byte)PacketDataType.IKNetSerializable, connIdBytes[0], connIdBytes[1] }.Concat(obj.KNetSerialize()).ToArray());
         }

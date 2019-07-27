@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace KlivenNetworking {
     public abstract class KNetClient {
-        public static void RecieveBufferedObject(KNetSerializedField serializedField) {
+        internal static void RecieveBufferedObject(KNetSerializedField serializedField) {
             KNetView view = KlivenNet.FindView(serializedField.viewId);
             if (view == null) {
                 KNetLogger.LogError($"KNetClient: could not Recieve buffered object: KNetView of id {serializedField.viewId}: view does not exist.");

@@ -84,7 +84,7 @@ namespace KlivenNetworking {
                 return false;
             }
             for (int i = 0; i < args.Length; i++) {
-                if (args[i].GetType() != rpcInfo.Arguments[i].ParameterType) {
+                if (args[i].GetType() != rpcInfo.ArgumentsInfo[i].ParameterType) {
                     KNetLogger.LogError($"KlivenNetworking: KNetView: {GetType().Name}, ID: {Id}: RPC {rpcInfo.Name} incorrect parameters: expected {string.Join(", ", rpcInfo.ArgumentsTypes.Select(e=>e.Name).ToArray())}, recieved {string.Join(", ", args.Select(e=>e.GetType().Name).ToArray())}");
                     return false;
                 }

@@ -9,6 +9,15 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace KlivenNetworking {
+
+    internal enum SerializableType {
+        nonSerializable,
+        primitive,
+        kNetSerializable,
+        array,
+        list
+    }
+
     public interface IKNetReferenceable {
         byte[] KNetSerializeReference();
         object KNetDeserializeReference(byte[] data);
@@ -57,23 +66,27 @@ namespace KlivenNetworking {
     }
 
     internal class KNetRpcInfo : IKNetReferenceable {
-        public MethodInfo methodInfo;
+        public MethodInfo methodInfo { get; private set; }
         public short Id { get; private set; } = -1;
         public KNetView kNetView { get; private set; }
+        // public object[] Arguments { get; private set; }
         public string Name { get; private set; }
-        public ParameterInfo[] Arguments { get; private set; }
+        public ParameterInfo[] ArgumentsInfo { get; private set; }
         public Type[] ArgumentsTypes { get; private set; }
 
-        public static KNetRpcInfo CreateRpcInfo (short id, KNetView view, MethodInfo methodInfo) {
+        public static KNetRpcInfo CreateRpcInfo(short id, KNetView view, MethodInfo methodInfo) {
             KNetRpcInfo info = new KNetRpcInfo();
-            var args = methodInfo.GetParameters().OrderBy(e=>e.Position);
-            if (args.Select (e => KNetUtils.IsSerializable(e.ParameterType) != 0).Any()) {
+            var args = methodInfo.GetParameters().OrderBy(e => e.Position);
+            if (args.Select(e => KNetUtils.IsSerializable(e.ParameterType) != 0).Any()) {
                 return null;
             }
             info.methodInfo = methodInfo;
             info.Name = methodInfo.Name;
-            info.Arguments = args.ToArray();
-            info.ArgumentsTypes = args.Select(e => e.ParameterType).ToArray();
+            info.ArgumentsInfo = args.ToArray();
+            info.ArgumentsTypes = new Type[info.ArgumentsInfo.Length];
+            for (int i = 0; i < info.ArgumentsInfo.Length; i++) {
+                info.ArgumentsTypes[i] = info.ArgumentsInfo[i].ParameterType;
+            }
             info.Id = id;
             info.kNetView = view;
             return info;
@@ -100,6 +113,26 @@ namespace KlivenNetworking {
                 refer = ms.GetBuffer();
             }
             return refer;
+        }
+    }
+
+    internal class KNetRpc : IKNetSerializable {
+        public KNetRpcInfo RpcInfo { get; private set; }
+        public object[] Arguments { get; private set; }
+
+        public KNetRpc(KNetRpcInfo rpcInfo, params object[] arguments) {
+            this.RpcInfo = RpcInfo;
+            this.Arguments = arguments;
+        }
+
+        public object KNetDeserialize(byte[] data) {
+            object[] obj = new object[2];
+            obj[0] = RpcInfo.KNetSerializeReference();
+            obj
+        }
+
+        public byte[] KNetSerialize() {
+            throw new NotImplementedException();
         }
     }
 }

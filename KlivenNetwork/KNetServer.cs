@@ -87,54 +87,21 @@ namespace KlivenNetworking {
                 int buffFieldId = -1;
                 foreach (var bufferedField in view.BufferedFields) {
                     buffFieldId++;
-                    KNetSerializedField serializedField = null;
                     var fieldType = bufferedField.FieldType;
-                    byte bufferable = KNetUtils.IsSerializable(fieldType);
-                   // Console.WriteLine(bufferedField.Name + " is bufferable: " + bufferable);
-                   if (bufferable == 0) {
+                    var bufferable = KNetUtils.IsSerializable(fieldType);
+                    if (bufferable == SerializableType.nonSerializable) {
                         KNetLogger.LogError($"KNetServer: could not serialize field {bufferedField.Name} on KNetView {view.Id}: does {bufferedField.DeclaringType.Name} implement KNetSerializable interface?");
                         continue;
                     }
-                    var fieldValue = bufferedField.GetValue(view);
-                    if (fieldValue == null) {
-                       // Console.WriteLine($"{fieldType} is null, not buffering.");
+                    // Console.WriteLine(bufferedField.Name + " is bufferable: " + bufferable);
+                    var bytes = KNetUtils.Serialize(bufferedField.GetValue(view), bufferable, out int count);
+                    if (bytes == null) {
                         continue;
                     }
-                    if (bufferable == 1) {
-                        MemoryStream ms = new MemoryStream();
-                        BinaryFormatter bf = new BinaryFormatter();
-                        bf.Serialize(ms, fieldValue);
-                        serializedField = new KNetSerializedField(view.Id, buffFieldId, ms.GetBuffer());
-                    } else if (bufferable == 2) {
-                        byte[] buffer = null;
-                        if (fieldType.IsArray || (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))) {
-                            List<byte[]> serialized = new List<byte[]>();
-                            foreach (var element in (IEnumerable<IKNetSerializable>)fieldValue) {
-                                if (element != null)
-                                    serialized.Add(element.KNetSerialize());
-                            }
-
-                            MemoryStream ms = new MemoryStream();
-                            BinaryFormatter bf = new BinaryFormatter();
-                            bf.Serialize(ms, serialized);
-                            buffer = ms.GetBuffer();
-                            if (buffer != null && buffer.Length > 0) {
-                                var sf = new KNetSerializedField(view.Id, buffFieldId, buffer);
-                                sf.count = serialized.Count;
-                                serializedField = sf;
-                            }
-                        } else {
-                            /*buffer = (byte[])typeof(IKNetSerializable).GetMethod("KNetSerialize")
-                                .Invoke(fieldValue, null); spedzilem nad tymi dwoma linijkami 17 godzin, a potem znalazlem latwijszy sposob :c*/
-                            buffer = ((IKNetSerializable)fieldValue).KNetSerialize();
-                            if (buffer != null && buffer.Length > 0)
-                                serializedField = new KNetSerializedField(view.Id, buffFieldId, buffer);
-                        }
-                    }
-
+                    var serializedField = new KNetSerializedField(view.Id, buffFieldId, bytes);
+                    serializedField.count = count;
                     var packet = KNetUtils.ConstructPacket(KNetUtils.PacketType.bufferedObject, serializedField);
                     SendBytes(newClient, packet);
-
                 }
             }
         }
