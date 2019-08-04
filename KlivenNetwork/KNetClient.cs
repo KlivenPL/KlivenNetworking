@@ -8,70 +8,30 @@ using System.Threading.Tasks;
 
 namespace KlivenNetworking {
     public abstract class KNetClient {
+
+        /// <summary>
+        /// Sends bytes to the Server. Write your own code that manages that.
+        /// </summary>
+        /// <param name="target">Targeted Client</param>
+        /// <param name="bytes">Data to send</param>
+        protected abstract void SendBytes(byte[] bytes);
+        internal void SendBytesInternal(byte[] bytes) {
+            SendBytes(bytes);
+        }
         internal static void RecieveBufferedObject(KNetSerializedField serializedField) {
             KNetView view = KlivenNet.FindView(serializedField.viewId);
             if (view == null) {
                 KNetLogger.LogError($"KNetClient: could not Recieve buffered object: KNetView of id {serializedField.viewId}: view does not exist.");
                 return;
             }
-            /*var fields = view.BufferedFields.Where(e => e.Name == serializedField.fieldName).ToArray();
-            if (fields.Length != 1) {
-                KNetLogger.LogError($"KNetClient: could not Recieve buffered object: KNetView of id {serializedField.viewId}: field name {serializedField.fieldName} is ambiguous.");
-                return;
-            }*/
-            //var field = fields[0];
             var field = serializedField.fieldId < view.BufferedFields.Length ? view.BufferedFields[serializedField.fieldId] : null;
             if (field == null) {
                 KNetLogger.LogError($"KNetClient: could not Recieve buffered object: KNetView of id {serializedField.viewId}: field id {serializedField.fieldId} is not defined.");
                 return;
             }
-            var fieldType = field.FieldType;
+            field.SetValue(view, KNetUtils.Deserialize(serializedField.data, serializedField.count
+                , KNetUtils.IsSerializable(field.FieldType), field.FieldType));
 
-            byte bufferable = KNetUtils.IsSerializable(fieldType);
-            if (bufferable == 0) {
-                KNetLogger.LogError($"KNetClient: could not Recieve buffered object: could not serialize field {field.Name} on KNetView {view.Id}: does {field.DeclaringType.Name} implement KNetSerializable interface?");
-                return;
-            }
-            if (bufferable == 1) {
-                MemoryStream ms = new MemoryStream(serializedField.data);
-                BinaryFormatter bf = new BinaryFormatter();
-                field.SetValue(view, bf.Deserialize(ms));
-            } else if (bufferable == 2) {
-                if (fieldType.IsArray || (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))) {
-                    MemoryStream ms = new MemoryStream(serializedField.data);
-                    BinaryFormatter bf = new BinaryFormatter();
-                    List<byte[]> serialized = (List<byte[]>)bf.Deserialize(ms);
-                   
-                    if (fieldType.IsArray) {
-                        var elemType = fieldType.GetElementType();
-                        var deserialized = Array.CreateInstance(elemType, serializedField.count);
-                        int index = 0;
-                        for(int i = 0; i < serializedField.count; i++) { 
-                            object deserializedObject = typeof(IKNetSerializable).GetMethod("KNetDeserialize")
-                                .Invoke(Activator.CreateInstance(elemType), new object[] { serialized[i] });
-
-                            deserialized.SetValue(deserializedObject, index);
-                            index++;
-                        }
-                        field.SetValue(view, deserialized);
-                    } else {
-                        var genArgType = fieldType.GetGenericArguments()[0];
-                        var deserialized = Activator.CreateInstance(typeof(List<>).MakeGenericType(genArgType), serializedField.count);
-                        var listType = deserialized.GetType();
-                        for (int i = 0; i < serializedField.count; i++) {
-                            object deserializedObject = typeof(IKNetSerializable).GetMethod("KNetDeserialize")
-                                .Invoke(Activator.CreateInstance(genArgType), new object[] { serialized[i] });
-
-                            listType.GetMethod("Add").Invoke(deserialized, new object[] { deserializedObject });
-                        }
-                        field.SetValue(view, deserialized);
-                    }
-                } else {
-                    // IKNetSerializable
-                    field.SetValue(view, typeof(IKNetSerializable).GetMethod("KNetDeserialize")
-                            .Invoke(Activator.CreateInstance(fieldType), new object[] { serializedField.data }));
-                }
-            }
         }
 
         /// <summary>
@@ -95,6 +55,8 @@ namespace KlivenNetworking {
                     RecieveBufferedObject((KNetSerializedField)bf.Deserialize(ms));
                     break;
                 case KNetUtils.PacketType.rpc:
+                    KNetRpc rpc = (KNetRpc)new KNetRpc().KNetDeserialize(bytes);
+                    rpc.Execute();
                     break;
             }
         }
@@ -116,11 +78,24 @@ namespace KlivenNetworking {
             //KlivenNet.MyConnection = new KNetConnection((short)welcomePacket[0]);
         }
 
+        internal void SendWelcomeClientInfo() {
+            //object[] wci = new object[];
+            //byte[] bytes = null;
+            //using (MemoryStream ms = new MemoryStream()) {
+            //    BinaryFormatter bf = new BinaryFormatter();
+            //    bf.Serialize(ms, wci);
+            //    bytes = ms.GetBuffer();
+            //}
+            KlivenNet.ZeroView.RPC()
+            
+        }
+
         protected virtual void OnConnectedToServer() {
             if (KlivenNet.IsConnected || KlivenNet.IsServer) {
                 //KNetLogger.LogError("KlivenNetworking: Cannot start client instance, because other instance (server or client) is already running.");
                 throw new Exception("KlivenNetworking: Cannot start client instance, because other instance (server or client) is already running on that application. Note that KlivenNetworking does not support Host mode (client & server at once)");
             }
+            KlivenNet.ClientInstnace = this;
             KNetLogger.Log("KlivenNetwroking: Connected to the server.");
         }
     }

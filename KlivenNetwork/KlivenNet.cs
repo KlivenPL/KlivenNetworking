@@ -19,6 +19,9 @@ namespace KlivenNetworking
                 return ZeroView.Players;
             }
         }
+
+        internal static KNetServer ServerInstance { get; set; }
+        internal static KNetClient ClientInstnace { get; set; }
         private static short nextPlayerId = 1;
         internal static short NextPlayerId {
             get {

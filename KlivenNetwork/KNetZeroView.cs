@@ -11,11 +11,19 @@ namespace KlivenNetworking {
         public List<KNetPlayer> Players = new List<KNetPlayer>();
 
         [KNetRPC]
-        internal void AddNewPlayer(KNetConnection connection) {
-            KNetPlayer player = new KNetPlayer(connection);
-            Players.Add(player);
+        void JebnijSobie(string monsterka, int[] raz, KNetPlayer dwa, int trzy) {
+            KNetLogger.Log($"jebnij sobie {monsterka}, {raz.Length}, {dwa}, {trzy}");
+            KNetLogger.Log(string.Join(", ", raz));
         }
 
+        internal void RecieveClientInfo(string name) {
 
+
+        }
+        [KNetRPC]
+        internal void AddNewPlayer(KNetConnection connection) {
+             KNetPlayer player = new KNetPlayer(connection);
+             Players.Add(player);
+         }
     }
 }

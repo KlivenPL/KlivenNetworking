@@ -15,6 +15,10 @@ namespace TestApplication {
             Chat.FixedUpdate += FixedUpdate;
         }
 
+        protected override void SendBytes(byte[] bytes) {
+            client.Send(bytes);
+        }
+
         void FixedUpdate() {
             Telepathy.Message msg;
             while (client.GetNextMessage(out msg)) {

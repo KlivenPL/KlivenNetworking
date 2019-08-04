@@ -8,8 +8,10 @@ using System.Text;
 using System.Threading.Tasks;
 using LZ4;
 
-namespace KlivenNetworking {
-    public static class KNetUtils {
+namespace KlivenNetworking
+{
+    public static class KNetUtils
+    {
 
         public static IEnumerable<Type> GetEnumerableOfType<T>(params object[] constructorArgs) where T : class {
             List<T> objects = new List<T>();
@@ -58,14 +60,14 @@ namespace KlivenNetworking {
                 ).Count() == 1) ? SerializableType.kNetSerializable : SerializableType.nonSerializable;
         }
 
-        internal static byte[] Serialize(object fieldValue, SerializableType serializableType, out int count) {
+        internal static byte[] Serialize(object kNetSerializable, SerializableType serializableType, out int count) {
             count = 1;
             var bufferable = (int)serializableType;
             if (bufferable == 0) {
-                KNetLogger.LogWarning($"KNetUtils: could not serialize {fieldValue} : Non supported type");
+                KNetLogger.LogWarning($"KNetUtils: could not serialize {kNetSerializable} : Non supported type");
                 return null;
             }
-            if (fieldValue == null) {
+            if (kNetSerializable == null) {
                 // Console.WriteLine($"{fieldType} is null, not buffering.");
                 return null;
             }
@@ -73,15 +75,15 @@ namespace KlivenNetworking {
             if (bufferable == 1) {
                 MemoryStream ms = new MemoryStream();
                 BinaryFormatter bf = new BinaryFormatter();
-                bf.Serialize(ms, fieldValue);
+                bf.Serialize(ms, kNetSerializable);
                 return ms.GetBuffer();
             } else if (bufferable == 2) {
-                buffer = ((IKNetSerializable)fieldValue).KNetSerialize();
+                buffer = ((IKNetSerializable)kNetSerializable).KNetSerialize();
                 if (buffer != null && buffer.Length > 0)
                     return buffer;
             } else if (bufferable == 3 || bufferable == 4) {
                 List<byte[]> serialized = new List<byte[]>();
-                foreach (var element in (IEnumerable<IKNetSerializable>)fieldValue) {
+                foreach (var element in (IEnumerable<IKNetSerializable>)kNetSerializable) {
                     if (element != null)
                         serialized.Add(element.KNetSerialize());
                 }
@@ -94,6 +96,49 @@ namespace KlivenNetworking {
                     count = serialized.Count;
                     return buffer;
                 }
+            }
+            return null;
+        }
+
+        internal static object Deserialize(byte[] kNetSerialized, int count, SerializableType serializedType, Type objRealType) {
+            MemoryStream ms = new MemoryStream(kNetSerialized);
+            BinaryFormatter bf = new BinaryFormatter();
+            if (serializedType == 0) {
+                KNetLogger.LogError($"KNetClient: could not Recieve buffered object: could not deserialize field {objRealType.Name}: Type not supported");
+                return null;
+            }
+            if (serializedType == SerializableType.primitive) {
+                return bf.Deserialize(ms);
+            } else if (serializedType == SerializableType.kNetSerializable) {
+                return typeof(IKNetSerializable).GetMethod("KNetDeserialize")
+        .Invoke(Activator.CreateInstance(objRealType), new object[] { kNetSerialized });
+
+            } else if (serializedType == SerializableType.array) {
+                List<byte[]> serialized = (List<byte[]>)bf.Deserialize(ms);
+                var elemType = objRealType.GetElementType();
+                var deserialized = Array.CreateInstance(elemType, count);
+                int index = 0;
+                for (int i = 0; i < count; i++) {
+                    object deserializedObject = typeof(IKNetSerializable).GetMethod("KNetDeserialize")
+                        .Invoke(Activator.CreateInstance(elemType), new object[] { serialized[i] });
+
+                    deserialized.SetValue(deserializedObject, index);
+                    index++;
+                }
+                return deserialized;
+
+            } else if (serializedType == SerializableType.list) {
+                List<byte[]> serialized = (List<byte[]>)bf.Deserialize(ms);
+                var genArgType = objRealType.GetGenericArguments()[0];
+                var deserialized = Activator.CreateInstance(typeof(List<>).MakeGenericType(genArgType), count);
+                var listType = deserialized.GetType();
+                for (int i = 0; i < count; i++) {
+                    object deserializedObject = typeof(IKNetSerializable).GetMethod("KNetDeserialize")
+                        .Invoke(Activator.CreateInstance(genArgType), new object[] { serialized[i] });
+
+                    listType.GetMethod("Add").Invoke(deserialized, new object[] { deserializedObject });
+                }
+                return deserialized;
             }
             return null;
         }

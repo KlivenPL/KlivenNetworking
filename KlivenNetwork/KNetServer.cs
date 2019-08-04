@@ -17,6 +17,7 @@ namespace KlivenNetworking {
             if (KlivenNet.IsConnected || KlivenNet.IsServer) {
                 throw new Exception("KlivenNetworking: Cannot start server instance, because other instance (server or client) is already running on that application. Note that KlivenNetworking does not support Host mode (client & server at once)");
             }
+            KlivenNet.ServerInstance = this;
             KlivenNet.MyConnection = new KNetConnection(0);
             KlivenNet.ServerConnection = KlivenNet.MyConnection;
             KlivenNet.AddView(new KNetZeroView());
@@ -46,10 +47,15 @@ namespace KlivenNetworking {
             //KNetUtils.RecievePacket(packetType)
             switch (packetType) {
                 case KNetUtils.PacketType.rpc:
+                    KNetRpc rpc = (KNetRpc)new KNetRpc().KNetDeserialize(bytes);
+                    rpc.Execute();
                     break;
             }
         }
 
+        internal void SendBytesInternal(KNetConnection target, byte[] bytes) {
+            SendBytes(target, bytes);
+        }
         internal void SendWelcomePacket(KNetConnection newClient) {
             object[] welcomePacket = new object[2];
             string[] viewTypeNames = new string[KlivenNet.Views.Count];
@@ -70,12 +76,10 @@ namespace KlivenNetworking {
             bf.Serialize(ms, welcomePacket);
             var packet = KNetUtils.ConstructPacket(KNetUtils.PacketType.welcome, ms.GetBuffer());
             SendBytes(newClient, packet);
-            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 1" });
-            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 2" });
-            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 3" });
-            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 4" });
-            KlivenNet.Players.Add(new KNetPlayer { Name = "dupa 5" });
             SendBufferedValues(newClient);
+
+            KlivenNet.ZeroView.RPC("JebnijSobie", newClient, "monsterka kurwa", new int[] { 1, 2, 3 }, new KNetPlayer(), 2137);
+            KlivenNet.ZeroView.RPC("JebnijSobie", newClient, "monsterka kurwa2", new int[] { 3, 21, 3222 }, new KNetPlayer(), 2167);
         }
 
         //public static List<KNetSerializedField> DEBUG_SEND_BUFFERED_VALUES() {

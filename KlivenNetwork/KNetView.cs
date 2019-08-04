@@ -42,7 +42,7 @@ namespace KlivenNetworking {
         internal bool VerifyRpcMethods(MethodInfo[] tmp, out KNetRpcInfo[] tmpRpcs) {
             tmpRpcs = new KNetRpcInfo[tmp.Length];
             for (int i = 0; i < tmp.Length; i++) {
-                var rpcInfo = KNetRpcInfo.CreateRpcInfo(tmp[i]);
+                var rpcInfo = KNetRpcInfo.CreateRpcInfo((short)i, this, tmp[i]);
                 if (rpcInfo == null) {
                     KNetLogger.LogError($"KlivenNetworking: KNetView: {GetType().Name}: incorrect RPC found: {tmp[i].Name}. RPCs on that View will not work. Check if RPC parameters types are supported.");
                     return false;
@@ -60,7 +60,7 @@ namespace KlivenNetworking {
             return true;
         }
 
-        public void RPC(string rpcMethodName, params object[] args) {
+        public void RPC(string rpcMethodName, KNetConnection[] targets, params object[] args) {
             var rpcInfo = FindRpc(rpcMethodName);
             if (rpcInfo == null) {
                 KNetLogger.LogError($"There is no RPC {rpcMethodName} on View of ID {Id} tagged with KNetRPC attribute.");
@@ -68,13 +68,62 @@ namespace KlivenNetworking {
             if (VerifyRpcArguments(rpcInfo, args) == false) {
                 return;
             }
+            KNetRpc rpc = new KNetRpc(rpcInfo, args);
+            var packet = KNetUtils.ConstructPacket(KNetUtils.PacketType.rpc, rpc.KNetSerialize(), KlivenNet.MyConnection);
 
+            if (KlivenNet.IsServer) {
+                if (targets == null) {
+                    KNetLogger.LogError($"KNetView: {Id}, RPC:{rpcMethodName}: 'Targets' parameter can not be null on the Server. Use KNetTargets.all to send it to all Clients.");
+                    return;
+                }
+                for (int i = 0; i < targets.Length; i++) {
+                    if (targets[i] == KlivenNet.MyConnection)
+                        rpc.Execute();
+                    else
+                        KlivenNet.ServerInstance.SendBytesInternal(targets[i], packet);
+                }
+            } else {
+                if (targets != null) {
+                    if (targets[0] == KlivenNet.MyConnection) {
+                        rpc.Execute();
+                        return;
+                    }
+                    KNetLogger.LogError($"KNetView: {Id}, RPC:{rpcMethodName}: Only Server can send RPCs to other Clients. Clients can send RPCs to the Server only. Leave 'targets' parameter null or use KNetTargets.server");
+                    return;
+                }
+                KlivenNet.ClientInstnace.SendBytesInternal(packet);
+            }
+        }
+
+        public void RPC(string rpcMethodName, KNetTargets target, params object[] args) {
+            KNetConnection[] targets = null;
+            switch (target) {
+                case KNetTargets.me:
+                    targets = new KNetConnection[] { KlivenNet.MyConnection };
+                    break;
+                case KNetTargets.server:
+                    targets = new KNetConnection[] { KlivenNet.ServerConnection };
+                    break;
+                case KNetTargets.allClients:
+                    targets = KlivenNet.Players.Select(p => p.Connection).ToArray();
+                    break;
+                case KNetTargets.allClientsAndServer:
+                    targets = new KNetConnection[KlivenNet.Players.Count + 1];
+                    targets[0] = KlivenNet.ServerConnection;
+                    for (int i = 0; i < KlivenNet.Players.Count; i++) {
+                        targets[i + 1] = KlivenNet.Players[i].Connection;
+                    }
+                    break;
+            }
+            RPC(rpcMethodName, targets, args);
         }
 
         internal KNetRpcInfo FindRpc(string name) {
-            for (int i = 0; i < rpcs.Length; i++) {
-                if (rpcs[i].Name == name)
-                    return rpcs[i];
+            if (Rpcs == null)
+                return null;
+            for (int i = 0; i < Rpcs.Length; i++) {
+                if (Rpcs[i].Name == name)
+                    return Rpcs[i];
             }
             return null;
         }
