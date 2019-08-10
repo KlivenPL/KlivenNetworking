@@ -20,10 +20,15 @@ namespace KlivenNetworking {
 
 
         }
+        //[KNetRPC]
+        //internal void AddNewPlayer(KNetConnection connection) {
+        //     KNetPlayer player = new KNetPlayer(connection);
+        //     Players.Add(player);
+        // }
+
         [KNetRPC]
-        internal void AddNewPlayer(KNetConnection connection) {
-             KNetPlayer player = new KNetPlayer(connection);
-             Players.Add(player);
-         }
+        public void ZaszczekajPajacu(string tekst) {
+            Console.WriteLine($"inba {tekst}");
+        }
     }
 }

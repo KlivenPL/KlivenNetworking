@@ -78,8 +78,9 @@ namespace KlivenNetworking {
             SendBytes(newClient, packet);
             SendBufferedValues(newClient);
 
-            KlivenNet.ZeroView.RPC("JebnijSobie", newClient, "monsterka kurwa", new int[] { 1, 2, 3 }, new KNetPlayer(), 2137);
-            KlivenNet.ZeroView.RPC("JebnijSobie", newClient, "monsterka kurwa2", new int[] { 3, 21, 3222 }, new KNetPlayer(), 2167);
+            /*KlivenNet.ZeroView.RPC("JebnijSobie", newClient, "monsterka kurwa", new int[] { 1, 2, 3 }, new KNetPlayer(), 2137);
+            KlivenNet.ZeroView.RPC("JebnijSobie", newClient, "monsterka kurwa2", new int[] { 3, 21, 3222 }, new KNetPlayer(), 2167);*/
+            KlivenNet.ZeroView.RPC("ZaszczekajPajacu", new KNetConnection[] { newClient }, "paulina");
         }
 
         //public static List<KNetSerializedField> DEBUG_SEND_BUFFERED_VALUES() {

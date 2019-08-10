@@ -86,7 +86,7 @@ namespace KlivenNetworking {
             //    bf.Serialize(ms, wci);
             //    bytes = ms.GetBuffer();
             //}
-            KlivenNet.ZeroView.RPC()
+            //KlivenNet.ZeroView.RPC()
             
         }
 
